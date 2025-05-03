@@ -1,7 +1,3 @@
-ur stealer here
-
-
-
 --[[ Loading screen on execution with progress bar and % ]]--
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
